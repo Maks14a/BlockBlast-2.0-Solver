@@ -67,7 +67,7 @@
             background: #ffffff !important;
             border: 2px solid #fbbf24 !important;
             box-shadow: 0 0 25px #fbbf24, 0 0 50px #ef4444 !important;
-            animation: blast-effect 0.4s ease-out forwards;
+            animation: blast-effect 0.45s ease-out forwards;
         }
 
         @keyframes blast-effect {
@@ -96,7 +96,7 @@
     <!-- Основной контейнер -->
     <main class="max-w-md mx-auto w-full flex flex-col gap-4 flex-grow justify-center">
         
-        <!-- Шапка -->
+        <!-- 1. ШАПКА -->
         <div class="flex justify-between items-center bg-slate-900/90 p-3 rounded-2xl border border-slate-800 shadow-lg">
             <div class="flex items-center gap-2">
                 <div class="p-1.5 bg-emerald-500 rounded-lg">
@@ -106,83 +106,35 @@
             </div>
             <button id="btnClearBoard" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                Очистить
+                Очистить поле
             </button>
         </div>
 
-        <!-- Игровое Поле 8х8 -->
+        <!-- 2. ИГРОВОЕ ПОЛЕ 8х8 -->
         <div class="bg-slate-900 p-4 rounded-3xl border border-slate-800 shadow-2xl relative">
             <div class="grid grid-cols-8 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-850 shadow-inner" id="board">
                 <!-- Плитки генерируются через JS -->
             </div>
             
             <div class="text-center mt-2 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                👉 Проведите пальцем, чтобы быстро рисовать/стирать
+                👉 Рисуй и стирай блоки пальцем / мышкой
             </div>
         </div>
 
-        <!-- Слоты для 3-х Фигур -->
-        <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg">
-            <div class="flex justify-between items-center mb-2 px-1">
-                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Фигуры в слотах</span>
-                <!-- Кнопка быстрого обновления раунда без сброса поля -->
-                <button id="btnQuickRefresh" class="text-[9px] bg-slate-850 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 font-bold px-2 py-1 rounded transition flex items-center gap-1">
-                    <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i>
-                    Новый раунд
-                </button>
-            </div>
-            <div class="grid grid-cols-3 gap-2" id="slotsContainer">
-                <!-- Слот 0 -->
-                <div id="slot-0" onclick="activateSlot(0)" class="slot-active border-2 border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
-                    <div id="slot-preview-0" class="flex items-center justify-center w-full h-10"></div>
-                </div>
-                <!-- Слот 1 -->
-                <div id="slot-1" onclick="activateSlot(1)" class="border-2 border-slate-700 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
-                    <div id="slot-preview-1" class="flex items-center justify-center w-full h-10"></div>
-                </div>
-                <!-- Слот 2 -->
-                <div id="slot-2" onclick="activateSlot(2)" class="border-2 border-slate-700 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
-                    <div id="slot-preview-2" class="flex items-center justify-center w-full h-10"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Панель выбора/рисования фигур -->
-        <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg flex flex-col gap-2">
-            <!-- Табы категорий фигур -->
-            <div class="flex justify-between gap-1 text-[10px] font-bold uppercase border-b border-slate-800 pb-2">
-                <button onclick="switchCategory('squares')" id="tab-squares" class="text-emerald-400 border-b-2 border-emerald-500 pb-1 px-1">Кубы</button>
-                <button onclick="switchCategory('lines')" id="tab-lines" class="text-slate-400 pb-1 px-1">Линии</button>
-                <button onclick="switchCategory('corners')" id="tab-corners" class="text-slate-400 pb-1 px-1">Углы</button>
-                <button onclick="switchCategory('complex')" id="tab-complex" class="text-slate-400 pb-1 px-1">Диагонали/Г/L</button>
-            </div>
-            
-            <!-- Сетка фигур -->
-            <div class="grid grid-cols-5 gap-1.5 overflow-y-auto max-h-[110px] p-1" id="quickShapesList">
-                <!-- Наполняется через JS -->
-            </div>
-
-            <!-- Дополнительная кнопка рисования своей фигуры -->
-            <button onclick="openCustomShapeCreator()" class="mt-1 w-full py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-emerald-400 text-xs font-bold rounded-lg border border-slate-750 flex items-center justify-center gap-2 transition">
-                <i data-lucide="edit-3" class="w-4 h-4"></i>
-                ➕ Нарисовать свою фигуру
-            </button>
-        </div>
-
-        <!-- Пошаговое управление -->
-        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3">
+        <!-- 3. ПАНЕЛЬ УПРАВЛЕНИЯ И РАСЧЕТОВ -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-850 shadow-xl flex flex-col gap-3">
             <div class="flex justify-between items-center">
                 <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Решение задачи</h3>
                 <span id="solutionBadge" class="text-[10px] px-2 py-0.5 rounded font-extrabold uppercase bg-slate-800 text-slate-400">Нарисуйте поле</span>
             </div>
 
-            <!-- Главная кнопка -->
-            <button id="btnSolve" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black rounded-xl transition shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 text-sm">
+            <!-- Главная кнопка расчета -->
+            <button id="btnSolve" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm">
                 <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
                 РАССЧИТАТЬ ХОДЫ
             </button>
 
-            <!-- Плеер шагов -->
+            <!-- Плеер пошаговых шагов -->
             <div id="playerControls" class="hidden flex flex-col gap-3 pt-2 border-t border-slate-850">
                 <div class="flex justify-between items-center text-xs text-slate-400 px-1">
                     <span>Инструкция: <strong id="stepIndicator" class="text-emerald-400 text-sm">1/3</strong></span>
@@ -211,11 +163,59 @@
             </div>
         </div>
 
+        <!-- 4. СЛОТЫ ДЛЯ 3-Х ФИГУР -->
+        <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg">
+            <div class="flex justify-between items-center mb-2 px-1">
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Текущие фигуры</span>
+                <!-- Кнопка перехода к новому раунду -->
+                <button id="btnQuickRefresh" class="text-[9px] bg-slate-850 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 font-bold px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i>
+                    Новые фигуры
+                </button>
+            </div>
+            <div class="grid grid-cols-3 gap-2" id="slotsContainer">
+                <!-- Слот 0 -->
+                <div id="slot-0" onclick="activateSlot(0)" class="slot-active border-2 border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
+                    <div id="slot-preview-0" class="flex items-center justify-center w-full h-10"></div>
+                </div>
+                <!-- Слот 1 -->
+                <div id="slot-1" onclick="activateSlot(1)" class="border-2 border-slate-700 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
+                    <div id="slot-preview-1" class="flex items-center justify-center w-full h-10"></div>
+                </div>
+                <!-- Слот 2 -->
+                <div id="slot-2" onclick="activateSlot(2)" class="border-2 border-slate-700 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
+                    <div id="slot-preview-2" class="flex items-center justify-center w-full h-10"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. ПАНЕЛЬ ВЫБОРА / ПРЕСЕТОВ И РЕДАКТОРА -->
+        <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg flex flex-col gap-2">
+            <!-- Табы категорий -->
+            <div class="flex justify-between gap-1 text-[10px] font-bold uppercase border-b border-slate-800 pb-2">
+                <button onclick="switchCategory('squares')" id="tab-squares" class="text-emerald-400 border-b-2 border-emerald-500 pb-1 px-1">Кубы</button>
+                <button onclick="switchCategory('lines')" id="tab-lines" class="text-slate-400 pb-1 px-1">Линии</button>
+                <button onclick="switchCategory('corners')" id="tab-corners" class="text-slate-400 pb-1 px-1">Углы</button>
+                <button onclick="switchCategory('complex')" id="tab-complex" class="text-slate-400 pb-1 px-1">Диагонали/Г/L</button>
+            </div>
+            
+            <!-- Сетка пресетов -->
+            <div class="grid grid-cols-5 gap-1.5 overflow-y-auto max-h-[110px] p-1" id="quickShapesList">
+                <!-- Наполняется через JS -->
+            </div>
+
+            <!-- Кнопка конструктора кастомной фигуры -->
+            <button onclick="openCustomShapeCreator()" class="mt-1 w-full py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/40 hover:to-teal-500/40 text-emerald-300 text-xs font-bold rounded-lg border border-emerald-500/30 flex items-center justify-center gap-2 transition">
+                <i data-lucide="edit-3" class="w-4 h-4 text-emerald-400"></i>
+                ➕ Нарисовать свою фигуру (3x3 - 6x6)
+            </button>
+        </div>
+
     </main>
 
     <!-- ОВЕРЛЕЙ / МОДАЛКА: Конструктор кастомной фигуры -->
-    <div id="customShapeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-xs w-full shadow-2xl flex flex-col gap-4">
+    <div id="customShapeModal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-sm w-full shadow-2xl flex flex-col gap-4">
             <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                 <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                     <i data-lucide="shapes" class="w-4 h-4 text-emerald-400"></i>
@@ -226,21 +226,30 @@
                 </button>
             </div>
 
-            <p class="text-[10px] text-slate-400 text-center leading-relaxed">
-                Кликните по квадратам сетки ниже, чтобы нарисовать фигуру любой формы:
-            </p>
+            <!-- Выбор размера сетки -->
+            <div class="flex flex-col gap-1">
+                <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Размер холста:</label>
+                <div class="grid grid-cols-4 gap-1">
+                    <button onclick="changeCreatorGridSize(3)" id="gridSize-3" class="py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded transition">3x3</button>
+                    <button onclick="changeCreatorGridSize(4)" id="gridSize-4" class="py-1 bg-slate-850 hover:bg-slate-750 text-slate-300 text-xs font-bold rounded transition">4x4</button>
+                    <button onclick="changeCreatorGridSize(5)" id="gridSize-5" class="py-1 bg-slate-850 hover:bg-slate-750 text-slate-300 text-xs font-bold rounded transition">5x5</button>
+                    <button onclick="changeCreatorGridSize(6)" id="gridSize-6" class="py-1 bg-slate-850 hover:bg-slate-750 text-slate-300 text-xs font-bold rounded transition">6x6</button>
+                </div>
+            </div>
 
-            <!-- Сетка рисования 3х3 -->
-            <div class="grid grid-cols-3 gap-2 bg-slate-950 p-4 rounded-xl border border-slate-800 max-w-[180px] mx-auto w-full" id="creatorGrid">
-                <!-- Генерируется через JS -->
+            <!-- Сетка рисования -->
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-center min-h-[220px]">
+                <div class="grid gap-1.5 w-full max-w-[200px]" id="creatorGrid">
+                    <!-- Генерируется через JS -->
+                </div>
             </div>
 
             <!-- Кнопки действий -->
-            <div class="grid grid-cols-2 gap-2 mt-2">
-                <button onclick="clearCreatorGrid()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition">
+            <div class="grid grid-cols-2 gap-2 mt-1">
+                <button onclick="clearCreatorGrid()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition">
                     Стереть всё
                 </button>
-                <button onclick="saveCustomShape()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-lg transition">
+                <button onclick="saveCustomShape()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-lg transition">
                     Применить
                 </button>
             </div>
@@ -248,14 +257,14 @@
     </div>
 
     <script>
-        // Обновленная расширенная база фигур со всеми вариациями (Г-блоки, L-блоки, диагонали)
+        // Полная база фигур со всеми видами диагоналей, Г-образных и L-образных блоков
         const SHAPES_DB = [
-            // Категория: Квадраты (squares)
+            // Категория: Квадраты
             { id: 'sq1', category: 'squares', name: '1x1', matrix: [[1]] },
             { id: 'sq2', category: 'squares', name: '2x2', matrix: [[1,1],[1,1]] },
             { id: 'sq3', category: 'squares', name: '3x3', matrix: [[1,1,1],[1,1,1],[1,1,1]] },
 
-            // Категория: Линии (lines)
+            // Категория: Линии
             { id: 'lh2', category: 'lines', name: 'Гор. 2', matrix: [[1,1]] },
             { id: 'lh3', category: 'lines', name: 'Гор. 3', matrix: [[1,1,1]] },
             { id: 'lh4', category: 'lines', name: 'Гор. 4', matrix: [[1,1,1,1]] },
@@ -265,25 +274,23 @@
             { id: 'lv4', category: 'lines', name: 'Верт. 4', matrix: [[1],[1],[1],[1]] },
             { id: 'lv5', category: 'lines', name: 'Верт. 5', matrix: [[1],[1],[1],[1],[1]] },
 
-            // Категория: Уголки (Г-блоки) 2x2 (corners)
+            // Категория: Уголки 2x2 (Г-блоки)
             { id: 'c_sm_tl', category: 'corners', name: 'Г-блок СВ', matrix: [[1,1],[1,0]] },
             { id: 'c_sm_tr', category: 'corners', name: 'Г-блок СЗ', matrix: [[1,1],[0,1]] },
             { id: 'c_sm_bl', category: 'corners', name: 'Г-блок ЮВ', matrix: [[1,0],[1,1]] },
             { id: 'c_sm_br', category: 'corners', name: 'Г-блок ЮЗ', matrix: [[0,1],[1,1]] },
 
-            // Большие L-блоки 3x3 (corners)
+            // Большие L-блоки 3x3
             { id: 'l_tl', category: 'corners', name: 'L-блок СВ', matrix: [[1,1,1],[1,0,0],[1,0,0]] },
             { id: 'l_tr', category: 'corners', name: 'L-блок СЗ', matrix: [[1,1,1],[0,0,1],[0,0,1]] },
             { id: 'l_bl', category: 'corners', name: 'L-блок ЮВ', matrix: [[1,0,0],[1,0,0],[1,1,1]] },
             { id: 'l_br', category: 'corners', name: 'L-блок ЮЗ', matrix: [[0,0,1],[0,0,1],[1,1,1]] },
 
-            // Категория: Диагонали и специфические (complex)
-            // Двойные диагональные (ступеньки)
+            // Диагонали и ступеньки
             { id: 'diag_2_1', category: 'complex', name: 'Ступенька 1', matrix: [[1,1],[0,1]] },
             { id: 'diag_2_2', category: 'complex', name: 'Ступенька 2', matrix: [[1,1],[1,0]] },
             { id: 'diag_2_3', category: 'complex', name: 'Ступенька 3', matrix: [[0,1],[1,1]] },
             { id: 'diag_2_4', category: 'complex', name: 'Ступенька 4', matrix: [[1,0],[1,1]] },
-            // Тройные диагональные наискосок (3 в ряд по диагонали)
             { id: 'diag_3_left', category: 'complex', name: 'Диагональ Л', matrix: [[1,0,0],[0,1,0],[0,0,1]] },
             { id: 'diag_3_right', category: 'complex', name: 'Диагональ П', matrix: [[0,0,1],[0,1,0],[1,0,0]] },
 
@@ -293,7 +300,7 @@
             { id: 't_l', category: 'complex', name: 'Т-блок Влево', matrix: [[1,0],[1,1],[1,0]] },
             { id: 't_r', category: 'complex', name: 'Т-блок Вправо', matrix: [[0,1],[1,1],[0,1]] },
 
-            // Z-образные блоки
+            // Z/S блоки
             { id: 'z_h', category: 'complex', name: 'Z-блок Гор.', matrix: [[1,1,0],[0,1,1]] },
             { id: 'z_v', category: 'complex', name: 'Z-блок Верт.', matrix: [[0,1],[1,1],[1,0]] },
             { id: 's_h', category: 'complex', name: 'S-блок Гор.', matrix: [[0,1,1],[1,1,0]] },
@@ -301,7 +308,7 @@
         ];
 
         let board = Array(8).fill(null).map(() => Array(8).fill(false));
-        let selectedSlots = [SHAPES_DB[2], SHAPES_DB[1], SHAPES_DB[15]]; // 3х3 куб, 2х2 куб, L-уголок
+        let selectedSlots = [SHAPES_DB[2], SHAPES_DB[1], SHAPES_DB[15]]; // Слот 0, 1, 2
         let activeSlotIndex = 0;
         let currentCategory = 'squares';
 
@@ -310,11 +317,12 @@
         let isAutoplayActive = false;
         let originalBoardState = null;
 
-        // Состояние рисования по доске
+        // Рисование на основном поле
         let isDrawing = false;
         let drawMode = true;
 
-        // Состояние рисования своей фигуры в конструкторе
+        // Конструктор кастомных фигур
+        let creatorGridSize = 3; 
         let customShapeMatrix = Array(3).fill(null).map(() => Array(3).fill(0));
 
         window.onload = () => {
@@ -326,7 +334,7 @@
             buildCreatorGridUI();
         };
 
-        // Генерация UI сетки с продвинутыми хитбоксами и мультитач рисованием
+        // Генерация UI сетки 8х8
         function buildBoardUI() {
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
@@ -339,10 +347,9 @@
                     tile.dataset.row = r;
                     tile.dataset.col = c;
 
-                    // Управление мышью
                     tile.addEventListener('mousedown', (e) => {
                         e.preventDefault();
-                        softResetSolver(); // Мягкий сброс без отката при рисовании
+                        softResetSolver(); // Мягкий сброс (очищает подсказки, оставляет поле целым!)
                         isDrawing = true;
                         drawMode = !board[r][c];
                         toggleTile(r, c, drawMode);
@@ -358,10 +365,8 @@
                 }
             }
 
-            // Глобальные события мыши
             window.addEventListener('mouseup', () => { isDrawing = false; });
 
-            // Поддержка тача для мобилок
             boardEl.addEventListener('touchstart', handleTouchStart, { passive: false });
             boardEl.addEventListener('touchmove', handleTouchMove, { passive: false });
             boardEl.addEventListener('touchend', () => { isDrawing = false; });
@@ -389,6 +394,7 @@
             }
         }
 
+        // Поддержка рисования пальцем на мобилках
         function handleTouchMove(e) {
             e.preventDefault();
             if (!isDrawing) return;
@@ -402,7 +408,6 @@
         }
 
         // МЯГКИЙ СБРОС (без отката доски)
-        // Стирает только активные подсказки на доске, сохраняя при этом текущее нарисованное поле
         function softResetSolver() {
             solutionSteps = [];
             currentStep = 0;
@@ -412,7 +417,7 @@
             document.getElementById('playerControls').classList.add('hidden');
             const badge = document.getElementById('solutionBadge');
             badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-slate-800 text-slate-400";
-            badge.innerText = "Поле изменено";
+            badge.innerText = "Поле готово к расчетам";
             
             redrawBoardFromState();
         }
@@ -489,10 +494,12 @@
                 item.onclick = () => {
                     selectedSlots[activeSlotIndex] = shape;
                     renderSlots();
-                    // Изменение фигуры больше НЕ заставляет доску откатываться к начальному состоянию!
+                    
+                    // Мягкий сброс только плеера подсказок. Поле не стирается!
                     solutionSteps = [];
                     currentStep = 0;
                     document.getElementById('playerControls').classList.add('hidden');
+                    document.getElementById('solutionBadge').className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-slate-800 text-slate-400";
                     document.getElementById('solutionBadge').innerText = "Нажмите Расчет";
                 };
                 item.innerHTML = renderShapeMiniHTML(shape, 'bg-emerald-400');
@@ -501,14 +508,32 @@
         }
 
         // ==========================================
-        // КОНСТРУКТОР СВОЕЙ ФИГУРЫ (3х3)
+        // КОНСТРУКТОР ФИГУР (3х3 - 6x6)
         // ==========================================
+
+        function changeCreatorGridSize(newSize) {
+            creatorGridSize = newSize;
+            
+            for (let i = 3; i <= 6; i++) {
+                const btn = document.getElementById(`gridSize-${i}`);
+                if (i === newSize) {
+                    btn.className = "py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded transition";
+                } else {
+                    btn.className = "py-1 bg-slate-850 hover:bg-slate-750 text-slate-300 text-xs font-bold rounded transition";
+                }
+            }
+
+            customShapeMatrix = Array(newSize).fill(null).map(() => Array(newSize).fill(0));
+            buildCreatorGridUI();
+        }
 
         function buildCreatorGridUI() {
             const container = document.getElementById('creatorGrid');
             container.innerHTML = '';
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
+            container.style.gridTemplateColumns = `repeat(${creatorGridSize}, minmax(0, 1fr))`;
+            
+            for (let r = 0; r < creatorGridSize; r++) {
+                for (let c = 0; c < creatorGridSize; c++) {
                     const tile = document.createElement('div');
                     tile.id = `creator-${r}-${c}`;
                     tile.className = "editor-tile bg-slate-900 border border-slate-700 cursor-pointer";
@@ -531,21 +556,21 @@
         }
 
         function clearCreatorGrid() {
-            customShapeMatrix = Array(3).fill(null).map(() => Array(3).fill(0));
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
+            customShapeMatrix = Array(creatorGridSize).fill(null).map(() => Array(creatorGridSize).fill(0));
+            for (let r = 0; r < creatorGridSize; r++) {
+                for (let c = 0; c < creatorGridSize; c++) {
                     const tile = document.getElementById(`creator-${r}-${c}`);
                     if (tile) tile.className = "editor-tile bg-slate-900 border border-slate-700";
                 }
             }
         }
 
-        function cropMatrix(matrix) {
-            let minR = 3, maxR = -1, minC = 3, maxC = -1;
+        function cropCustomMatrix(matrix, size) {
+            let minR = size, maxR = -1, minC = size, maxC = -1;
             let hasAny = false;
 
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
                     if (matrix[r][c] === 1) {
                         hasAny = true;
                         if (r < minR) minR = r;
@@ -570,7 +595,7 @@
         }
 
         function saveCustomShape() {
-            const cropped = cropMatrix(customShapeMatrix);
+            const cropped = cropCustomMatrix(customShapeMatrix, creatorGridSize);
             
             const customShapeObj = {
                 id: 'custom_' + Date.now(),
@@ -581,9 +606,11 @@
 
             selectedSlots[activeSlotIndex] = customShapeObj;
             renderSlots();
+            
             solutionSteps = [];
             currentStep = 0;
             document.getElementById('playerControls').classList.add('hidden');
+            
             closeCustomShapeCreator();
             showSuccessToast("Ваша фигура добавлена и загружена в слот!");
         }
@@ -593,6 +620,7 @@
         // ==========================================
 
         function setupControls() {
+            // Кнопка: Полностью очистить поле
             document.getElementById('btnClearBoard').addEventListener('click', () => {
                 board = Array(8).fill(null).map(() => Array(8).fill(false));
                 solutionSteps = [];
@@ -601,6 +629,7 @@
                 document.getElementById('playerControls').classList.add('hidden');
                 document.getElementById('solutionBadge').innerText = "Нарисуйте поле";
                 redrawBoardFromState();
+                showSuccessToast("Поле полностью очищено");
             });
 
             document.getElementById('btnSolve').addEventListener('click', calculateSolution);
@@ -617,8 +646,7 @@
             document.getElementById('btnAutoPlay').addEventListener('click', triggerAutoplay);
             document.getElementById('btnApply').addEventListener('click', applyCurrentSolution);
 
-            // Кнопка «Новый раунд / Быстрое обновление»: 
-            // Просто сбрасывает состояние решения, чтобы ты мог сразу рассчитать ходы для нового раунда
+            // Кнопка «Новые фигуры»: Сбрасывает только плеер ходов. Твое поле остается целым!
             document.getElementById('btnQuickRefresh').addEventListener('click', () => {
                 solutionSteps = [];
                 currentStep = 0;
@@ -627,38 +655,36 @@
                 document.getElementById('solutionBadge').className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-slate-800 text-slate-400";
                 document.getElementById('solutionBadge').innerText = "Новые фигуры";
                 redrawBoardFromState();
-                showSuccessToast("Раунд обновлен! Теперь рассчитывай новые ходы.");
+                showSuccessToast("Новый раунд настроен. Ждем новые фигуры!");
             });
         }
 
-        // ПРИМЕНИТЬ РЕШЕНИЕ: Записывает поле намертво
         function applyCurrentSolution() {
             if (solutionSteps.length === 0) return;
             
-            // Запоминаем состояние поля после укладки последней фигуры
+            // Фиксируем поле в состояние ПОСЛЕДНЕГО шага решения
             const lastStep = solutionSteps[solutionSteps.length - 1];
             board = JSON.parse(JSON.stringify(lastStep.boardAfter));
             
-            // Начисто очищаем историю решения, чтобы при изменении фигур доска больше никогда не откатывалась!
+            // Забываем сессию решения, чтобы доска не откатывалась при смене фигур
             solutionSteps = [];
             currentStep = 0;
-            originalBoardState = null; // Забываем предыдущую сессию
+            originalBoardState = null; 
             document.getElementById('playerControls').classList.add('hidden');
             
             const badge = document.getElementById('solutionBadge');
             badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-blue-500/20 text-blue-400 border border-blue-500/30";
-            badge.innerText = "Ход сохранен";
+            badge.innerText = "Ход зафиксирован";
 
             redrawBoardFromState();
-            showSuccessToast("Ход зафиксирован! Можете играть дальше.");
+            showSuccessToast("Ход применен! Поле сохранено.");
         }
 
         // ==========================================
-        // АЛГОРИТМ РЕШЕНИЯ И АВТО-ОЧИСТКИ
+        // АЛГОРИТМ РЕШЕНИЯ И АНИМАЦИЙ
         // ==========================================
 
         function calculateSolution() {
-            // Запоминаем текущее поле перед стартом шагов
             originalBoardState = JSON.parse(JSON.stringify(board));
 
             const solution = solve(board, selectedSlots);
@@ -694,7 +720,7 @@
             t.className = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-emerald-950/95 border border-emerald-800 text-emerald-200 font-bold py-3 px-6 rounded-2xl shadow-2xl text-center text-xs z-50 max-w-[90%]";
             t.innerHTML = "✅ " + msg;
             document.body.appendChild(t);
-            setTimeout(() => t.remove(), 3000);
+            setTimeout(() => t.remove(), 2500);
         }
 
         function canFit(tempBoard, matrix, sRow, sCol) {
@@ -778,8 +804,8 @@
             const shape = shapes[shapeIdx];
             const matrix = shape.matrix;
 
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
+            for (let r = 0; r <= 8 - matrix.length; r++) {
+                for (let c = 0; c <= 8 - matrix[0].length; c++) {
                     if (canFit(currBoard, matrix, r, c)) {
                         const placement = simulatePlacement(currBoard, matrix, r, c);
                         
@@ -817,6 +843,7 @@
             }
         }
 
+        // ОТРИСОВКА ШАГА С ЭФФЕКТНЫМ СГОРАНИЕМ ЛИНИЙ (Анимация на месте!)
         function renderActiveStepAnimation() {
             const step = solutionSteps[currentStep - 1];
             if (!step) return;
@@ -865,6 +892,7 @@
                 comboLabel.classList.remove('hidden');
 
                 setTimeout(() => {
+                    // Сияние белым пламенем перед сгоранием (Эффект blast!)
                     step.rowsCleared.forEach(r => {
                         for (let c = 0; c < 8; c++) {
                             const tile = document.getElementById(`tile-${r}-${c}`);
@@ -878,17 +906,17 @@
                         }
                     });
 
+                    // Плавное растворение блоков
                     setTimeout(() => {
                         drawCleanBoard(step.boardAfter);
                     }, 400);
 
-                }, 800);
+                }, 850);
             } else {
                 comboLabel.classList.add('hidden');
             }
         }
 
-        // Рендер чистой доски
         function drawCleanBoard(boardAfter) {
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
@@ -901,7 +929,6 @@
             }
         }
 
-        // Авто-плей
         function triggerAutoplay() {
             if (solutionSteps.length === 0 || isAutoplayActive) return;
 
@@ -916,7 +943,7 @@
                 if (currentStep <= solutionSteps.length) {
                     renderActiveStepAnimation();
                     currentStep++;
-                    setTimeout(runNextStep, 1700);
+                    setTimeout(runNextStep, 1850);
                 } else {
                     isAutoplayActive = false;
                     currentStep = solutionSteps.length;
@@ -931,3 +958,5 @@
     </script>
 </body>
 </html>
+
+
