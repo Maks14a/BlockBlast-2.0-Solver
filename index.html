@@ -1,0 +1,902 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Block Blast Auto-Solver</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Четкие хитбоксы игрового поля */
+        .grid-tile {
+            position: relative;
+            aspect-ratio: 1;
+            box-sizing: border-box;
+            cursor: pointer;
+            touch-action: none;
+            transition: transform 0.1s ease, background-color 0.1s ease;
+        }
+
+        .grid-tile:active {
+            transform: scale(0.9);
+        }
+
+        .tile-empty {
+            background-color: #151f32;
+            border: 2px solid #243551;
+            border-radius: 8px;
+        }
+
+        /* Зеленые блоки */
+        .tile-filled {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            border: 2px solid #166534;
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Красная подсветка подсказки */
+        .tile-placed {
+            background: linear-gradient(135deg, #f87171, #ef4444) !important;
+            border: 2px solid #991b1b !important;
+            border-radius: 8px;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.9), inset 0 2px 4px rgba(255,255,255,0.4) !important;
+            animation: pulse-glow 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(0.95); filter: brightness(1.2); }
+        }
+
+        /* Эффект взрыва линии */
+        .tile-blast {
+            background: #ffffff !important;
+            border: 2px solid #fbbf24 !important;
+            box-shadow: 0 0 25px #fbbf24, 0 0 50px #ef4444 !important;
+            animation: blast-effect 0.4s ease-out forwards;
+        }
+
+        @keyframes blast-effect {
+            0% { transform: scale(1); filter: brightness(2); opacity: 1; }
+            50% { transform: scale(1.15); filter: brightness(1.5); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Выделение активного слота */
+        .slot-active {
+            border-color: #10b981 !important;
+            background-color: #064e3b !important;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Кнопка нарисованной плитки в редакторе */
+        .editor-tile {
+            aspect-ratio: 1;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 sm:p-6 pb-12">
+
+    <!-- Основной контейнер -->
+    <main class="max-w-md mx-auto w-full flex flex-col gap-4 flex-grow justify-center">
+        
+        <!-- Шапка -->
+        <div class="flex justify-between items-center bg-slate-900/90 p-3 rounded-2xl border border-slate-800 shadow-lg">
+            <div class="flex items-center gap-2">
+                <div class="p-1.5 bg-emerald-500 rounded-lg">
+                    <i data-lucide="zap" class="w-4 h-4 text-slate-950 fill-slate-950"></i>
+                </div>
+                <span class="font-black text-sm tracking-widest text-emerald-400 uppercase">BLOCK BLAST</span>
+            </div>
+            <button id="btnClearBoard" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                Очистить
+            </button>
+        </div>
+
+        <!-- Игровое Поле 8х8 -->
+        <div class="bg-slate-900 p-4 rounded-3xl border border-slate-800 shadow-2xl relative">
+            <div class="grid grid-cols-8 gap-2 bg-slate-950 p-3 rounded-2xl border border-slate-850 shadow-inner" id="board">
+                <!-- Плитки генерируются через JS -->
+            </div>
+            
+            <div class="text-center mt-2 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                👉 Проведите пальцем, чтобы быстро рисовать/стирать
+            </div>
+        </div>
+
+        <!-- Слоты для 3-х Фигур -->
+        <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg">
+            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-2 text-center">Выбранные фигуры в слотах</div>
+            <div class="grid grid-cols-3 gap-2" id="slotsContainer">
+                <!-- Слот 0 -->
+                <div id="slot-0" onclick="activateSlot(0)" class="slot-active border-2 border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
+                    <div id="slot-preview-0" class="flex items-center justify-center w-full h-10"></div>
+                </div>
+                <!-- Слот 1 -->
+                <div id="slot-1" onclick="activateSlot(1)" class="border-2 border-slate-700 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
+                    <div id="slot-preview-1" class="flex items-center justify-center w-full h-10"></div>
+                </div>
+                <!-- Слот 2 -->
+                <div id="slot-2" onclick="activateSlot(2)" class="border-2 border-slate-700 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
+                    <div id="slot-preview-2" class="flex items-center justify-center w-full h-10"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель выбора/рисования фигур -->
+        <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg flex flex-col gap-2">
+            <!-- Табы категорий фигур -->
+            <div class="flex justify-between gap-1 text-[10px] font-bold uppercase border-b border-slate-800 pb-2">
+                <button onclick="switchCategory('squares')" id="tab-squares" class="text-emerald-400 border-b-2 border-emerald-500 pb-1 px-1">Кубы</button>
+                <button onclick="switchCategory('lines')" id="tab-lines" class="text-slate-400 pb-1 px-1">Линии</button>
+                <button onclick="switchCategory('corners')" id="tab-corners" class="text-slate-400 pb-1 px-1">Углы</button>
+                <button onclick="switchCategory('complex')" id="tab-complex" class="text-slate-400 pb-1 px-1">Диагонали/Г/L</button>
+            </div>
+            
+            <!-- Сетка готовых фигур -->
+            <div class="grid grid-cols-5 gap-1.5 overflow-y-auto max-h-[110px] p-1" id="quickShapesList">
+                <!-- Наполняется через JS -->
+            </div>
+
+            <!-- Дополнительная кнопка рисования своей фигуры -->
+            <button onclick="openCustomShapeCreator()" class="mt-1 w-full py-2 bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-emerald-400 text-xs font-bold rounded-lg border border-slate-750 flex items-center justify-center gap-2 transition">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                ➕ Нарисовать свою фигуру
+            </button>
+        </div>
+
+        <!-- Пошаговое управление -->
+        <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Решение задачи</h3>
+                <span id="solutionBadge" class="text-[10px] px-2 py-0.5 rounded font-extrabold uppercase bg-slate-800 text-slate-400">Нарисуйте поле</span>
+            </div>
+
+            <!-- Главная кнопка -->
+            <button id="btnSolve" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-black rounded-xl transition shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 text-sm">
+                <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
+                РАССЧИТАТЬ ХОДЫ
+            </button>
+
+            <!-- Плеер шагов -->
+            <div id="playerControls" class="hidden flex flex-col gap-3 pt-2 border-t border-slate-850">
+                <div class="flex justify-between items-center text-xs text-slate-400 px-1">
+                    <span>Инструкция: <strong id="stepIndicator" class="text-emerald-400 text-sm">1/3</strong></span>
+                    <span id="comboLabel" class="text-amber-400 font-extrabold hidden">Линии сгорят! 🔥</span>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btnPrev" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition font-bold text-xs flex items-center justify-center gap-1">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i> Назад
+                    </button>
+                    
+                    <button id="btnAutoPlay" class="py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg transition font-black text-xs flex items-center justify-center gap-1">
+                        <i data-lucide="play-circle" class="w-4 h-4"></i> Авто
+                    </button>
+
+                    <button id="btnNext" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition font-bold text-xs flex items-center justify-center gap-1">
+                        Далее <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Кнопка фиксации решения -->
+                <button id="btnApply" class="w-full py-2.5 bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-slate-950 font-bold rounded-xl transition border border-emerald-500/30 hover:border-transparent flex items-center justify-center gap-2 text-xs">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    ПРИМЕНИТЬ РЕШЕНИЕ И ИГРАТЬ ДАЛЬШЕ
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ОВЕРЛЕЙ / МОДАЛКА: Конструктор кастомной фигуры -->
+    <div id="customShapeModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 max-w-xs w-full shadow-2xl flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="shapes" class="w-4 h-4 text-emerald-400"></i>
+                    Конструктор блока
+                </h4>
+                <button onclick="closeCustomShapeCreator()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-[10px] text-slate-400 text-center leading-relaxed">
+                Кликните по квадратам сетки ниже, чтобы нарисовать фигуру любой формы:
+            </p>
+
+            <!-- Сетка рисования 3х3 -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-950 p-4 rounded-xl border border-slate-800 max-w-[180px] mx-auto w-full" id="creatorGrid">
+                <!-- Генерируется через JS -->
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="grid grid-cols-2 gap-2 mt-2">
+                <button onclick="clearCreatorGrid()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition">
+                    Стереть всё
+                </button>
+                <button onclick="saveCustomShape()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-lg transition">
+                    Применить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Обновленная расширенная база фигур со всеми вариациями (Г-блоки, L-блоки, диагонали)
+        const SHAPES_DB = [
+            // Категория: Квадраты (squares)
+            { id: 'sq1', category: 'squares', name: '1x1', matrix: [[1]] },
+            { id: 'sq2', category: 'squares', name: '2x2', matrix: [[1,1],[1,1]] },
+            { id: 'sq3', category: 'squares', name: '3x3', matrix: [[1,1,1],[1,1,1],[1,1,1]] },
+
+            // Категория: Линии (lines)
+            { id: 'lh2', category: 'lines', name: 'Гор. 2', matrix: [[1,1]] },
+            { id: 'lh3', category: 'lines', name: 'Гор. 3', matrix: [[1,1,1]] },
+            { id: 'lh4', category: 'lines', name: 'Гор. 4', matrix: [[1,1,1,1]] },
+            { id: 'lh5', category: 'lines', name: 'Гор. 5', matrix: [[1,1,1,1,1]] },
+            { id: 'lv2', category: 'lines', name: 'Верт. 2', matrix: [[1],[1]] },
+            { id: 'lv3', category: 'lines', name: 'Верт. 3', matrix: [[1],[1],[1]] },
+            { id: 'lv4', category: 'lines', name: 'Верт. 4', matrix: [[1],[1],[1],[1]] },
+            { id: 'lv5', category: 'lines', name: 'Верт. 5', matrix: [[1],[1],[1],[1],[1]] },
+
+            // Категория: Уголки (Г-блоки) 2x2 (corners)
+            { id: 'c_sm_tl', category: 'corners', name: 'Г-блок СВ', matrix: [[1,1],[1,0]] },
+            { id: 'c_sm_tr', category: 'corners', name: 'Г-блок СЗ', matrix: [[1,1],[0,1]] },
+            { id: 'c_sm_bl', category: 'corners', name: 'Г-блок ЮВ', matrix: [[1,0],[1,1]] },
+            { id: 'c_sm_br', category: 'corners', name: 'Г-блок ЮЗ', matrix: [[0,1],[1,1]] },
+
+            // Большие L-блоки 3x3 (corners)
+            { id: 'l_tl', category: 'corners', name: 'L-блок СВ', matrix: [[1,1,1],[1,0,0],[1,0,0]] },
+            { id: 'l_tr', category: 'corners', name: 'L-блок СЗ', matrix: [[1,1,1],[0,0,1],[0,0,1]] },
+            { id: 'l_bl', category: 'corners', name: 'L-блок ЮВ', matrix: [[1,0,0],[1,0,0],[1,1,1]] },
+            { id: 'l_br', category: 'corners', name: 'L-блок ЮЗ', matrix: [[0,0,1],[0,0,1],[1,1,1]] },
+
+            // Категория: Диагонали и специфические (complex)
+            // Двойные диагональные (ступеньки)
+            { id: 'diag_2_1', category: 'complex', name: 'Ступенька 1', matrix: [[1,1],[0,1]] },
+            { id: 'diag_2_2', category: 'complex', name: 'Ступенька 2', matrix: [[1,1],[1,0]] },
+            { id: 'diag_2_3', category: 'complex', name: 'Ступенька 3', matrix: [[0,1],[1,1]] },
+            { id: 'diag_2_4', category: 'complex', name: 'Ступенька 4', matrix: [[1,0],[1,1]] },
+            // Тройные диагональные наискосок (3 в ряд по диагонали)
+            { id: 'diag_3_left', category: 'complex', name: 'Диагональ Л', matrix: [[1,0,0],[0,1,0],[0,0,1]] },
+            { id: 'diag_3_right', category: 'complex', name: 'Диагональ П', matrix: [[0,0,1],[0,1,0],[1,0,0]] },
+
+            // Т-образные блоки
+            { id: 't_u', category: 'complex', name: 'Т-блок Вверх', matrix: [[0,1,0],[1,1,1]] },
+            { id: 't_d', category: 'complex', name: 'Т-блок Вниз', matrix: [[1,1,1],[0,1,0]] },
+            { id: 't_l', category: 'complex', name: 'Т-блок Влево', matrix: [[1,0],[1,1],[1,0]] },
+            { id: 't_r', category: 'complex', name: 'Т-блок Вправо', matrix: [[0,1],[1,1],[0,1]] },
+
+            // Z-образные блоки
+            { id: 'z_h', category: 'complex', name: 'Z-блок Гор.', matrix: [[1,1,0],[0,1,1]] },
+            { id: 'z_v', category: 'complex', name: 'Z-блок Верт.', matrix: [[0,1],[1,1],[1,0]] },
+            { id: 's_h', category: 'complex', name: 'S-блок Гор.', matrix: [[0,1,1],[1,1,0]] },
+            { id: 's_v', category: 'complex', name: 'S-блок Верт.', matrix: [[1,0],[1,1],[0,1]] }
+        ];
+
+        let board = Array(8).fill(null).map(() => Array(8).fill(false));
+        let selectedSlots = [SHAPES_DB[2], SHAPES_DB[1], SHAPES_DB[15]]; // 3х3 куб, 2х2 куб, L-уголок
+        let activeSlotIndex = 0;
+        let currentCategory = 'squares';
+
+        let solutionSteps = [];
+        let currentStep = 0;
+        let isAutoplayActive = false;
+        let originalBoardState = null;
+
+        // Состояние рисования по доске
+        let isDrawing = false;
+        let drawMode = true;
+
+        // Состояние рисования своей фигуры в конструкторе
+        let customShapeMatrix = Array(3).fill(null).map(() => Array(3).fill(0));
+
+        window.onload = () => {
+            lucide.createIcons();
+            buildBoardUI();
+            renderSlots();
+            renderQuickShapes();
+            setupControls();
+            buildCreatorGridUI();
+        };
+
+        // Генерация UI сетки с продвинутыми хитбоксами и мультитач рисованием
+        function buildBoardUI() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const tile = document.createElement('div');
+                    tile.id = `tile-${r}-${c}`;
+                    tile.className = `grid-tile ${board[r][c] ? 'tile-filled' : 'tile-empty'}`;
+                    tile.dataset.row = r;
+                    tile.dataset.col = c;
+
+                    // Управление мышью
+                    tile.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        softResetSolver(); // Мягкий сброс без отката при рисовании
+                        isDrawing = true;
+                        drawMode = !board[r][c];
+                        toggleTile(r, c, drawMode);
+                    });
+
+                    tile.addEventListener('mouseenter', () => {
+                        if (isDrawing) {
+                            toggleTile(r, c, drawMode);
+                        }
+                    });
+
+                    boardEl.appendChild(tile);
+                }
+            }
+
+            // Глобальные события мыши
+            window.addEventListener('mouseup', () => { isDrawing = false; });
+
+            // Поддержка тача для мобилок
+            boardEl.addEventListener('touchstart', handleTouchStart, { passive: false });
+            boardEl.addEventListener('touchmove', handleTouchMove, { passive: false });
+            boardEl.addEventListener('touchend', () => { isDrawing = false; });
+        }
+
+        function toggleTile(r, c, mode) {
+            board[r][c] = mode;
+            const tile = document.getElementById(`tile-${r}-${c}`);
+            if (tile) {
+                tile.className = `grid-tile ${mode ? 'tile-filled' : 'tile-empty'}`;
+            }
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            softResetSolver();
+            const touch = e.touches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (element && element.classList.contains('grid-tile')) {
+                isDrawing = true;
+                const r = parseInt(element.dataset.row);
+                const c = parseInt(element.dataset.col);
+                drawMode = !board[r][c];
+                toggleTile(r, c, drawMode);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const touch = e.touches[0];
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (element && element.classList.contains('grid-tile')) {
+                const r = parseInt(element.dataset.row);
+                const c = parseInt(element.dataset.col);
+                toggleTile(r, c, drawMode);
+            }
+        }
+
+        // МЯГКИЙ СБРОС (без отката доски)
+        function softResetSolver() {
+            solutionSteps = [];
+            currentStep = 0;
+            isAutoplayActive = false;
+            originalBoardState = null;
+            
+            document.getElementById('playerControls').classList.add('hidden');
+            const badge = document.getElementById('solutionBadge');
+            badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-slate-800 text-slate-400";
+            badge.innerText = "Поле изменено";
+            
+            redrawBoardFromState();
+        }
+
+        function redrawBoardFromState() {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const tile = document.getElementById(`tile-${r}-${c}`);
+                    if (tile) {
+                        tile.className = `grid-tile ${board[r][c] ? 'tile-filled' : 'tile-empty'}`;
+                        tile.innerHTML = '';
+                    }
+                }
+            }
+        }
+
+        // Отрисовка слотов
+        function renderSlots() {
+            for (let i = 0; i < 3; i++) {
+                const preview = document.getElementById(`slot-preview-${i}`);
+                const slotBox = document.getElementById(`slot-${i}`);
+                if (i === activeSlotIndex) {
+                    slotBox.classList.add('slot-active');
+                } else {
+                    slotBox.classList.remove('slot-active');
+                }
+                preview.innerHTML = renderShapeMiniHTML(selectedSlots[i], 'bg-emerald-500 border border-emerald-600');
+            }
+        }
+
+        function renderShapeMiniHTML(shape, blockClass) {
+            const m = shape.matrix;
+            const rLen = m.length;
+            const cLen = m[0].length;
+            let html = `<div class="grid gap-[2px]" style="grid-template-columns: repeat(${cLen}, minmax(0, 1fr));">`;
+            for (let r = 0; r < rLen; r++) {
+                for (let c = 0; c < cLen; c++) {
+                    if (m[r][c] === 1) {
+                        html += `<div class="w-2.5 h-2.5 ${blockClass} rounded-[2px]"></div>`;
+                    } else {
+                        html += `<div class="w-2.5 h-2.5 bg-transparent"></div>`;
+                    }
+                }
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        function activateSlot(index) {
+            activeSlotIndex = index;
+            renderSlots();
+        }
+
+        function switchCategory(catName) {
+            currentCategory = catName;
+            ['squares', 'lines', 'corners', 'complex'].forEach(c => {
+                const tab = document.getElementById(`tab-${c}`);
+                if (c === catName) {
+                    tab.className = "text-emerald-400 border-b-2 border-emerald-500 pb-1 px-1";
+                } else {
+                    tab.className = "text-slate-400 pb-1 px-1";
+                }
+            });
+            renderQuickShapes();
+        }
+
+        function renderQuickShapes() {
+            const container = document.getElementById('quickShapesList');
+            container.innerHTML = '';
+            const filtered = SHAPES_DB.filter(s => s.category === currentCategory);
+            filtered.forEach(shape => {
+                const item = document.createElement('div');
+                item.className = "p-1.5 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500 rounded-lg flex items-center justify-center cursor-pointer transition min-h-[44px]";
+                item.onclick = () => {
+                    selectedSlots[activeSlotIndex] = shape;
+                    renderSlots();
+                    softResetSolver();
+                };
+                item.innerHTML = renderShapeMiniHTML(shape, 'bg-emerald-400');
+                container.appendChild(item);
+            });
+        }
+
+        // ==========================================
+        // КОНСТРУКТОР СВОЕЙ ФИГУРЫ (3х3)
+        // ==========================================
+
+        function buildCreatorGridUI() {
+            const container = document.getElementById('creatorGrid');
+            container.innerHTML = '';
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const tile = document.createElement('div');
+                    tile.id = `creator-${r}-${c}`;
+                    tile.className = "editor-tile bg-slate-900 border border-slate-700 cursor-pointer";
+                    tile.onclick = () => {
+                        customShapeMatrix[r][c] = customShapeMatrix[r][c] === 1 ? 0 : 1;
+                        tile.className = `editor-tile ${customShapeMatrix[r][c] === 1 ? 'bg-emerald-500 shadow-md shadow-emerald-500/20' : 'bg-slate-900 border border-slate-700'}`;
+                    };
+                    container.appendChild(tile);
+                }
+            }
+        }
+
+        function openCustomShapeCreator() {
+            // Очищаем матрицу по умолчанию перед открытием
+            clearCreatorGrid();
+            document.getElementById('customShapeModal').classList.remove('hidden');
+        }
+
+        function closeCustomShapeCreator() {
+            document.getElementById('customShapeModal').classList.add('hidden');
+        }
+
+        function clearCreatorGrid() {
+            customShapeMatrix = Array(3).fill(null).map(() => Array(3).fill(0));
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    const tile = document.getElementById(`creator-${r}-${c}`);
+                    if (tile) tile.className = "editor-tile bg-slate-900 border border-slate-700";
+                }
+            }
+        }
+
+        // Обрезает пустые внешние строки и столбцы из 3х3 матрицы, чтобы сделать её компактной (например, из 3х3 оставить чистый 2х1)
+        function cropMatrix(matrix) {
+            let minR = 3, maxR = -1, minC = 3, maxC = -1;
+            let hasAny = false;
+
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    if (matrix[r][c] === 1) {
+                        hasAny = true;
+                        if (r < minR) minR = r;
+                        if (r > maxR) maxR = r;
+                        if (c < minC) minC = c;
+                        if (c > maxC) maxC = c;
+                    }
+                }
+            }
+
+            if (!hasAny) return [[1]]; // Если ничего не нарисовали - возвращаем кубик 1х1
+
+            let cropped = [];
+            for (let r = minR; r <= maxR; r++) {
+                let row = [];
+                for (let c = minC; c <= maxC; c++) {
+                    row.push(matrix[r][c]);
+                }
+                cropped.push(row);
+            }
+            return cropped;
+        }
+
+        function saveCustomShape() {
+            const cropped = cropMatrix(customShapeMatrix);
+            
+            // Создаем объект фигуры
+            const customShapeObj = {
+                id: 'custom_' + Date.now(),
+                category: 'custom',
+                name: 'Моя фигура',
+                matrix: cropped
+            };
+
+            // Применяем к активному слоту
+            selectedSlots[activeSlotIndex] = customShapeObj;
+            renderSlots();
+            softResetSolver();
+            closeCustomShapeCreator();
+            showSuccessToast("Ваша фигура добавлена и загружена в слот!");
+        }
+
+        // ==========================================
+        // КНОПКИ ДЕЙСТВИЙ И ПОДКЛЮЧЕНИЕ УПРАВЛЕНИЯ
+        // ==========================================
+
+        function setupControls() {
+            document.getElementById('btnClearBoard').addEventListener('click', () => {
+                board = Array(8).fill(null).map(() => Array(8).fill(false));
+                softResetSolver();
+            });
+
+            document.getElementById('btnSolve').addEventListener('click', calculateSolution);
+
+            document.getElementById('btnPrev').addEventListener('click', () => {
+                if (isAutoplayActive) return;
+                navigateStep(-1);
+            });
+            document.getElementById('btnNext').addEventListener('click', () => {
+                if (isAutoplayActive) return;
+                navigateStep(1);
+            });
+
+            document.getElementById('btnAutoPlay').addEventListener('click', triggerAutoplay);
+            document.getElementById('btnApply').addEventListener('click', applyCurrentSolution);
+        }
+
+        function applyCurrentSolution() {
+            if (solutionSteps.length === 0) return;
+            
+            const lastStep = solutionSteps[solutionSteps.length - 1];
+            board = JSON.parse(JSON.stringify(lastStep.boardAfter));
+            
+            solutionSteps = [];
+            currentStep = 0;
+            originalBoardState = null;
+            document.getElementById('playerControls').classList.add('hidden');
+            
+            const badge = document.getElementById('solutionBadge');
+            badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-blue-500/20 text-blue-400 border border-blue-500/30";
+            badge.innerText = "Ход зафиксирован";
+
+            redrawBoardFromState();
+            showSuccessToast("Ход записан! Поле готово к новому раунду.");
+        }
+
+        // ==========================================
+        // АЛГОРИТМ РЕШЕНИЯ И АВТО-ОЧИСТКИ
+        // ==========================================
+
+        function calculateSolution() {
+            originalBoardState = JSON.parse(JSON.stringify(board));
+
+            const solution = solve(board, selectedSlots);
+            const badge = document.getElementById('solutionBadge');
+            const player = document.getElementById('playerControls');
+
+            if (solution && solution.length > 0) {
+                solutionSteps = solution;
+                currentStep = 1;
+                badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                badge.innerText = "Решение найдено!";
+                player.classList.remove('hidden');
+
+                renderActiveStepAnimation();
+            } else {
+                badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                badge.innerText = "Решений нет!";
+                player.classList.add('hidden');
+                showNoSolutionToast();
+            }
+        }
+
+        function showNoSolutionToast() {
+            const t = document.createElement('div');
+            t.className = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-rose-950/95 border border-rose-800 text-rose-200 font-bold py-3 px-6 rounded-2xl shadow-2xl text-center text-xs z-50 max-w-[90%]";
+            t.innerHTML = "❌ <strong>Решений нет!</strong><br>Эти три фигуры невозможно разместить на текущем поле.";
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3500);
+        }
+
+        function showSuccessToast(msg) {
+            const t = document.createElement('div');
+            t.className = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-emerald-950/95 border border-emerald-800 text-emerald-200 font-bold py-3 px-6 rounded-2xl shadow-2xl text-center text-xs z-50 max-w-[90%]";
+            t.innerHTML = "✅ " + msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        function canFit(tempBoard, matrix, sRow, sCol) {
+            const h = matrix.length;
+            const w = matrix[0].length;
+            if (sRow + h > 8 || sCol + w > 8) return false;
+
+            for (let r = 0; r < h; r++) {
+                for (let c = 0; c < w; c++) {
+                    if (matrix[r][c] === 1) {
+                        if (tempBoard[sRow + r][sCol + c]) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function simulatePlacement(tempBoard, matrix, sRow, sCol) {
+            let nextBoard = tempBoard.map(row => [...row]);
+            const h = matrix.length;
+            const w = matrix[0].length;
+
+            for (let r = 0; r < h; r++) {
+                for (let c = 0; c < w; c++) {
+                    if (matrix[r][c] === 1) {
+                        nextBoard[sRow + r][sCol + c] = true;
+                    }
+                }
+            }
+
+            let rowsToClear = [];
+            let colsToClear = [];
+
+            for (let r = 0; r < 8; r++) {
+                if (nextBoard[r].every(cell => cell === true)) rowsToClear.push(r);
+            }
+
+            for (let c = 0; c < 8; c++) {
+                let colFull = true;
+                for (let r = 0; r < 8; r++) {
+                    if (!nextBoard[r][c]) { colFull = false; break; }
+                }
+                if (colFull) colsToClear.push(c);
+            }
+
+            rowsToClear.forEach(r => {
+                for (let c = 0; c < 8; c++) nextBoard[r][c] = false;
+            });
+
+            colsToClear.forEach(c => {
+                for (let r = 0; r < 8; r++) nextBoard[r][c] = false;
+            });
+
+            return {
+                board: nextBoard,
+                clearedRows: rowsToClear,
+                clearedCols: colsToClear,
+                clearedCount: rowsToClear.length + colsToClear.length
+            };
+        }
+
+        function solve(initialBoard, shapes) {
+            const orders = [
+                [0, 1, 2], [0, 2, 1],
+                [1, 0, 2], [1, 2, 0],
+                [2, 0, 1], [2, 1, 0]
+            ];
+
+            for (let order of orders) {
+                let steps = [];
+                let success = findChain(initialBoard, shapes, order, 0, steps);
+                if (success) return steps;
+            }
+            return null;
+        }
+
+        function findChain(currBoard, shapes, order, idx, accum) {
+            if (idx === 3) return true;
+
+            const shapeIdx = order[idx];
+            const shape = shapes[shapeIdx];
+            const matrix = shape.matrix;
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (canFit(currBoard, matrix, r, c)) {
+                        const placement = simulatePlacement(currBoard, matrix, r, c);
+                        
+                        const stepInfo = {
+                            shapeIndex: shapeIdx,
+                            shapeName: shape.name,
+                            matrix: matrix,
+                            row: r,
+                            col: c,
+                            boardBefore: currBoard,
+                            boardAfter: placement.board,
+                            rowsCleared: placement.clearedRows,
+                            colsCleared: placement.clearedCols,
+                            clearedCount: placement.clearedCount
+                        };
+
+                        accum.push(stepInfo);
+
+                        if (findChain(placement.board, shapes, order, idx + 1, accum)) {
+                            return true;
+                        }
+
+                        accum.pop();
+                    }
+                }
+            }
+            return false;
+        }
+
+        function navigateStep(direction) {
+            let nextStep = currentStep + direction;
+            if (nextStep >= 1 && nextStep <= solutionSteps.length) {
+                currentStep = nextStep;
+                renderActiveStepAnimation();
+            }
+        }
+
+        function renderActiveStepAnimation() {
+            const step = solutionSteps[currentStep - 1];
+            if (!step) return;
+
+            document.getElementById('stepIndicator').innerText = `${currentStep}/${solutionSteps.length}`;
+            
+            const boardBefore = step.boardBefore;
+            const matrix = step.matrix;
+            const sRow = step.row;
+            const sCol = step.col;
+            const h = matrix.length;
+            const w = matrix[0].length;
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const tile = document.getElementById(`tile-${r}-${c}`);
+                    if (!tile) continue;
+
+                    const isPlacedCell = (r >= sRow && r < sRow + h && c >= sCol && c < sCol + w) && (matrix[r - sRow][c - sCol] === 1);
+
+                    tile.innerHTML = '';
+
+                    if (isPlacedCell) {
+                        tile.className = 'grid-tile tile-placed';
+                        if (r === sRow + Math.floor(h/2) && c === sCol + Math.floor(w/2)) {
+                            tile.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-white"><i data-lucide="arrow-down-to-line" class="w-4 h-4 drop-shadow"></i></div>`;
+                        }
+                    } else if (boardBefore[r][c]) {
+                        tile.className = 'grid-tile tile-filled';
+                    } else {
+                        tile.className = 'grid-tile tile-empty';
+                    }
+                }
+            }
+            lucide.createIcons();
+
+            document.getElementById('btnPrev').disabled = currentStep === 1;
+            document.getElementById('btnPrev').style.opacity = currentStep === 1 ? "0.5" : "1";
+            document.getElementById('btnNext').disabled = currentStep === solutionSteps.length;
+            document.getElementById('btnNext').style.opacity = currentStep === solutionSteps.length ? "0.5" : "1";
+
+            const comboLabel = document.getElementById('comboLabel');
+            
+            if (step.clearedCount > 0) {
+                comboLabel.innerText = `Сгорит линий: ${step.clearedCount}! 🔥`;
+                comboLabel.classList.remove('hidden');
+
+                setTimeout(() => {
+                    step.rowsCleared.forEach(r => {
+                        for (let c = 0; c < 8; c++) {
+                            const tile = document.getElementById(`tile-${r}-${c}`);
+                            if (tile) tile.className = "grid-tile tile-blast";
+                        }
+                    });
+                    step.colsCleared.forEach(c => {
+                        for (let r = 0; r < 8; r++) {
+                            const tile = document.getElementById(`tile-${r}-${c}`);
+                            if (tile) tile.className = "grid-tile tile-blast";
+                        }
+                    });
+
+                    setTimeout(() => {
+                        drawCleanBoard(step.boardAfter);
+                    }, 400);
+
+                }, 800);
+            } else {
+                comboLabel.classList.add('hidden');
+            }
+        }
+
+        function drawCleanBoard(boardAfter) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const tile = document.getElementById(`tile-${r}-${c}`);
+                    if (tile) {
+                        tile.className = `grid-tile ${boardAfter[r][c] ? 'tile-filled' : 'tile-empty'}`;
+                        tile.innerHTML = '';
+                    }
+                }
+            }
+        }
+
+        function triggerAutoplay() {
+            if (solutionSteps.length === 0 || isAutoplayActive) return;
+
+            isAutoplayActive = true;
+            const btnPlay = document.getElementById('btnAutoPlay');
+            btnPlay.className = "py-2.5 bg-slate-800 text-amber-500 rounded-lg transition font-black text-xs flex items-center justify-center gap-1 cursor-wait";
+            btnPlay.innerHTML = `<span class="animate-ping w-2 h-2 rounded-full bg-amber-500 mr-1"></span>Плей...`;
+
+            currentStep = 1;
+            
+            function runNextStep() {
+                if (currentStep <= solutionSteps.length) {
+                    renderActiveStepAnimation();
+                    currentStep++;
+                    setTimeout(runNextStep, 1700);
+                } else {
+                    isAutoplayActive = false;
+                    currentStep = solutionSteps.length;
+                    btnPlay.className = "py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg transition font-black text-xs flex items-center justify-center gap-1";
+                    btnPlay.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> Авто`;
+                    lucide.createIcons();
+                }
+            }
+
+            runNextStep();
+        }
+    </script>
+</body>
+</html>
+
+```
