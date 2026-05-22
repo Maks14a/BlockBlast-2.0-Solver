@@ -123,7 +123,14 @@
 
         <!-- Слоты для 3-х Фигур -->
         <div class="bg-slate-900/95 p-3 rounded-2xl border border-slate-850 shadow-lg">
-            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-2 text-center">Выбранные фигуры в слотах</div>
+            <div class="flex justify-between items-center mb-2 px-1">
+                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Фигуры в слотах</span>
+                <!-- Кнопка быстрого обновления раунда без сброса поля -->
+                <button id="btnQuickRefresh" class="text-[9px] bg-slate-850 hover:bg-emerald-500 hover:text-slate-950 text-slate-300 font-bold px-2 py-1 rounded transition flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-2.5 h-2.5"></i>
+                    Новый раунд
+                </button>
+            </div>
             <div class="grid grid-cols-3 gap-2" id="slotsContainer">
                 <!-- Слот 0 -->
                 <div id="slot-0" onclick="activateSlot(0)" class="slot-active border-2 border-emerald-500 rounded-xl p-2 flex flex-col items-center justify-center min-h-[75px] cursor-pointer bg-slate-950 transition">
@@ -150,7 +157,7 @@
                 <button onclick="switchCategory('complex')" id="tab-complex" class="text-slate-400 pb-1 px-1">Диагонали/Г/L</button>
             </div>
             
-            <!-- Сетка готовых фигур -->
+            <!-- Сетка фигур -->
             <div class="grid grid-cols-5 gap-1.5 overflow-y-auto max-h-[110px] p-1" id="quickShapesList">
                 <!-- Наполняется через JS -->
             </div>
@@ -197,7 +204,7 @@
                 </div>
 
                 <!-- Кнопка фиксации решения -->
-                <button id="btnApply" class="w-full py-2.5 bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-slate-950 font-bold rounded-xl transition border border-emerald-500/30 hover:border-transparent flex items-center justify-center gap-2 text-xs">
+                <button id="btnApply" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-xs">
                     <i data-lucide="check" class="w-4 h-4"></i>
                     ПРИМЕНИТЬ РЕШЕНИЕ И ИГРАТЬ ДАЛЬШЕ
                 </button>
@@ -395,6 +402,7 @@
         }
 
         // МЯГКИЙ СБРОС (без отката доски)
+        // Стирает только активные подсказки на доске, сохраняя при этом текущее нарисованное поле
         function softResetSolver() {
             solutionSteps = [];
             currentStep = 0;
@@ -481,7 +489,11 @@
                 item.onclick = () => {
                     selectedSlots[activeSlotIndex] = shape;
                     renderSlots();
-                    softResetSolver();
+                    // Изменение фигуры больше НЕ заставляет доску откатываться к начальному состоянию!
+                    solutionSteps = [];
+                    currentStep = 0;
+                    document.getElementById('playerControls').classList.add('hidden');
+                    document.getElementById('solutionBadge').innerText = "Нажмите Расчет";
                 };
                 item.innerHTML = renderShapeMiniHTML(shape, 'bg-emerald-400');
                 container.appendChild(item);
@@ -510,7 +522,6 @@
         }
 
         function openCustomShapeCreator() {
-            // Очищаем матрицу по умолчанию перед открытием
             clearCreatorGrid();
             document.getElementById('customShapeModal').classList.remove('hidden');
         }
@@ -529,7 +540,6 @@
             }
         }
 
-        // Обрезает пустые внешние строки и столбцы из 3х3 матрицы, чтобы сделать её компактной (например, из 3х3 оставить чистый 2х1)
         function cropMatrix(matrix) {
             let minR = 3, maxR = -1, minC = 3, maxC = -1;
             let hasAny = false;
@@ -546,7 +556,7 @@
                 }
             }
 
-            if (!hasAny) return [[1]]; // Если ничего не нарисовали - возвращаем кубик 1х1
+            if (!hasAny) return [[1]];
 
             let cropped = [];
             for (let r = minR; r <= maxR; r++) {
@@ -562,7 +572,6 @@
         function saveCustomShape() {
             const cropped = cropMatrix(customShapeMatrix);
             
-            // Создаем объект фигуры
             const customShapeObj = {
                 id: 'custom_' + Date.now(),
                 category: 'custom',
@@ -570,10 +579,11 @@
                 matrix: cropped
             };
 
-            // Применяем к активному слоту
             selectedSlots[activeSlotIndex] = customShapeObj;
             renderSlots();
-            softResetSolver();
+            solutionSteps = [];
+            currentStep = 0;
+            document.getElementById('playerControls').classList.add('hidden');
             closeCustomShapeCreator();
             showSuccessToast("Ваша фигура добавлена и загружена в слот!");
         }
@@ -585,7 +595,12 @@
         function setupControls() {
             document.getElementById('btnClearBoard').addEventListener('click', () => {
                 board = Array(8).fill(null).map(() => Array(8).fill(false));
-                softResetSolver();
+                solutionSteps = [];
+                currentStep = 0;
+                originalBoardState = null;
+                document.getElementById('playerControls').classList.add('hidden');
+                document.getElementById('solutionBadge').innerText = "Нарисуйте поле";
+                redrawBoardFromState();
             });
 
             document.getElementById('btnSolve').addEventListener('click', calculateSolution);
@@ -601,25 +616,41 @@
 
             document.getElementById('btnAutoPlay').addEventListener('click', triggerAutoplay);
             document.getElementById('btnApply').addEventListener('click', applyCurrentSolution);
+
+            // Кнопка «Новый раунд / Быстрое обновление»: 
+            // Просто сбрасывает состояние решения, чтобы ты мог сразу рассчитать ходы для нового раунда
+            document.getElementById('btnQuickRefresh').addEventListener('click', () => {
+                solutionSteps = [];
+                currentStep = 0;
+                originalBoardState = null;
+                document.getElementById('playerControls').classList.add('hidden');
+                document.getElementById('solutionBadge').className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-slate-800 text-slate-400";
+                document.getElementById('solutionBadge').innerText = "Новые фигуры";
+                redrawBoardFromState();
+                showSuccessToast("Раунд обновлен! Теперь рассчитывай новые ходы.");
+            });
         }
 
+        // ПРИМЕНИТЬ РЕШЕНИЕ: Записывает поле намертво
         function applyCurrentSolution() {
             if (solutionSteps.length === 0) return;
             
+            // Запоминаем состояние поля после укладки последней фигуры
             const lastStep = solutionSteps[solutionSteps.length - 1];
             board = JSON.parse(JSON.stringify(lastStep.boardAfter));
             
+            // Начисто очищаем историю решения, чтобы при изменении фигур доска больше никогда не откатывалась!
             solutionSteps = [];
             currentStep = 0;
-            originalBoardState = null;
+            originalBoardState = null; // Забываем предыдущую сессию
             document.getElementById('playerControls').classList.add('hidden');
             
             const badge = document.getElementById('solutionBadge');
             badge.className = "text-[10px] px-2 py-0.5 rounded font-extrabold bg-blue-500/20 text-blue-400 border border-blue-500/30";
-            badge.innerText = "Ход зафиксирован";
+            badge.innerText = "Ход сохранен";
 
             redrawBoardFromState();
-            showSuccessToast("Ход записан! Поле готово к новому раунду.");
+            showSuccessToast("Ход зафиксирован! Можете играть дальше.");
         }
 
         // ==========================================
@@ -627,6 +658,7 @@
         // ==========================================
 
         function calculateSolution() {
+            // Запоминаем текущее поле перед стартом шагов
             originalBoardState = JSON.parse(JSON.stringify(board));
 
             const solution = solve(board, selectedSlots);
@@ -856,6 +888,7 @@
             }
         }
 
+        // Рендер чистой доски
         function drawCleanBoard(boardAfter) {
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
@@ -868,6 +901,7 @@
             }
         }
 
+        // Авто-плей
         function triggerAutoplay() {
             if (solutionSteps.length === 0 || isAutoplayActive) return;
 
